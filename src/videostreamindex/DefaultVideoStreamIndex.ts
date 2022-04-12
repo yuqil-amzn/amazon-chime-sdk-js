@@ -31,6 +31,7 @@ export default class DefaultVideoStreamIndex implements VideoStreamIndex {
 
   // These are based on the most up to date index
   protected streamToAttendeeMap: Map<number, string> | null = null;
+  protected groupIdToAttendeeMap: Map<number, string> | null = null;
   protected streamToExternalUserIdMap: Map<number, string> | null = null;
 
   private videoStreamDescription = new VideoStreamDescription();
@@ -116,7 +117,9 @@ export default class DefaultVideoStreamIndex implements VideoStreamIndex {
       );
     }
 
+    // Null out cached maps, these will be recreated on demand
     this.streamToAttendeeMap = null;
+    this.groupIdToAttendeeMap = null;
     this.streamToExternalUserIdMap = null;
   }
 
@@ -316,6 +319,22 @@ export default class DefaultVideoStreamIndex implements VideoStreamIndex {
     return attendeeId;
   }
 
+  attendeeIdForGroupId(groupId: number): string {
+    if (!this.groupIdToAttendeeMap) {
+      if (this.currentIndex) {
+        this.groupIdToAttendeeMap = this.buildGroupIdToAttendeeMap(this.currentIndex);
+      } else {
+        return '';
+      }
+    }
+    const attendeeId: string = this.groupIdToAttendeeMap.get(groupId);
+    if (!attendeeId) {
+      this.logger.info(`stream ${groupId}) does not correspond to a known attendee`);
+      return '';
+    }
+    return attendeeId;
+  }
+
   groupIdForStreamId(streamId: number): number {
     for (const source of this.currentIndex.sources) {
       if (source.streamId === streamId) {
@@ -412,6 +431,16 @@ export default class DefaultVideoStreamIndex implements VideoStreamIndex {
     if (indexFrame) {
       for (const source of indexFrame.sources) {
         map.set(source.streamId, source.attendeeId);
+      }
+    }
+    return map;
+  }
+
+  private buildGroupIdToAttendeeMap(indexFrame: SdkIndexFrame): Map<number, string> {
+    const map = new Map<number, string>();
+    if (indexFrame) {
+      for (const source of indexFrame.sources) {
+        map.set(source.groupId, source.attendeeId);
       }
     }
     return map;

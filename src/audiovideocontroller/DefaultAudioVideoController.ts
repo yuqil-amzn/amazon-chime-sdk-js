@@ -54,6 +54,7 @@ import OpenSignalingConnectionTask from '../task/OpenSignalingConnectionTask';
 import ParallelGroupTask from '../task/ParallelGroupTask';
 import PromoteToPrimaryMeetingTask from '../task/PromoteToPrimaryMeetingTask';
 import ReceiveAudioInputTask from '../task/ReceiveAudioInputTask';
+import ReceiveRemoteVideoPauseResume from '../task/ReceiveRemoteVideoPauseResumeTask';
 import ReceiveTURNCredentialsTask from '../task/ReceiveTURNCredentialsTask';
 import ReceiveVideoInputTask from '../task/ReceiveVideoInputTask';
 import ReceiveVideoStreamIndexTask from '../task/ReceiveVideoStreamIndexTask';
@@ -399,6 +400,7 @@ export default class DefaultAudioVideoController
     const setLocalDescription = new SetLocalDescriptionTask(context).once(createSDP);
     const ice = new FinishGatheringICECandidatesTask(context).once(setLocalDescription);
     const subscribeAck = new SubscribeAndReceiveSubscribeAckTask(context).once(ice);
+    const receivePauseResume = new ReceiveRemoteVideoPauseResume(context).once(subscribeAck);
 
     // The ending is a delicate time: we need the connection as a whole to have a timeout,
     // and for the attendee presence timer to not start ticking until after the subscribe/ack.
@@ -410,6 +412,7 @@ export default class DefaultAudioVideoController
           // The order of these two matters. If canceled, the first one that's still running
           // will contribute any special rejection, and we don't want that to be "attendee not found"!
           subscribeAck,
+          receivePauseResume,
           needsToWaitForAttendeePresence
             ? new TimeoutTask(
                 this.logger,
@@ -457,6 +460,7 @@ export default class DefaultAudioVideoController
             new SetLocalDescriptionTask(this.meetingSessionContext),
             new FinishGatheringICECandidatesTask(this.meetingSessionContext),
             new SubscribeAndReceiveSubscribeAckTask(this.meetingSessionContext),
+            new ReceiveRemoteVideoPauseResume(this.meetingSessionContext),
             needsToWaitForAttendeePresence
               ? new TimeoutTask(
                   this.logger,
@@ -848,7 +852,7 @@ export default class DefaultAudioVideoController
       !context.transceiverController.setStreamIdForMid ||
       !context.videosToReceive.forEach ||
       !context.signalingClient.remoteVideoUpdate ||
-      !context.videoStreamIndex.overrideStreamIdMappings
+      !context.videoStreamIndex.overrideStreamIdMappings || true // TODO
     ) {
       return false;
     }

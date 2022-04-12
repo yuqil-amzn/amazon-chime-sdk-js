@@ -10,6 +10,7 @@ import SignalingClient from '../signalingclient/SignalingClient';
 import SignalingClientEvent from '../signalingclient/SignalingClientEvent';
 import SignalingClientEventType from '../signalingclient/SignalingClientEventType';
 import SignalingClientSubscribe from '../signalingclient/SignalingClientSubscribe';
+import SignalingClientVideoSubscriptionConfiguration from '../signalingclient/SignalingClientVideoSubscriptionConfiguration';
 import SignalingClientObserver from '../signalingclientobserver/SignalingClientObserver';
 import {
   SdkSignalFrame,
@@ -17,6 +18,8 @@ import {
   SdkSubscribeAckFrame,
 } from '../signalingprotocol/SignalingProtocol.js';
 import TaskCanceler from '../taskcanceler/TaskCanceler';
+import ServerSideNetworkAdaption from '../videodownlinkbandwidthpolicy/ServerSideNetworkAdaption';
+import VideoPreferences from '../videodownlinkbandwidthpolicy/VideoPreferences';
 import BaseTask from './BaseTask';
 
 /**
@@ -105,6 +108,16 @@ export default class SubscribeAndReceiveSubscribeAckTask extends BaseTask {
       true,
       compressedSDPOffer
     );
+
+    if (this.context.videoDownlinkBandwidthPolicy.wantsServerSideNetworkAdaption !== undefined
+        && this.context.videoDownlinkBandwidthPolicy.wantsServerSideNetworkAdaption() !== ServerSideNetworkAdaption.None
+        && this.context.videoDownlinkBandwidthPolicy.getVideoPreferences !== undefined) {
+      // Set initial configuration for the receive streams indicated by the rest of the subscribe
+      subscribe.videoSubscriptionConfiguration = this.convertVideoPreferencesToVideoSubscriptionConfiguration(
+        videoSubscriptions,
+        this.context.videoDownlinkBandwidthPolicy.getVideoPreferences()
+      );
+    }
     this.context.logger.info(`sending subscribe: ${JSON.stringify(subscribe)}`);
     this.context.signalingClient.subscribe(subscribe);
 
@@ -190,6 +203,49 @@ export default class SubscribeAndReceiveSubscribeAckTask extends BaseTask {
       )} (may be same))}`
     );
     return newSubscriptions;
+  }
+
+  private convertVideoPreferencesToVideoSubscriptionConfiguration(
+    receiveStreamIds: number[],
+    preferences: VideoPreferences
+  ): SignalingClientVideoSubscriptionConfiguration[] {
+    if (this.context.transceiverController.getMidForStreamId === undefined || preferences === undefined) {
+      return [];
+    }
+
+    const configurations = new Array<SignalingClientVideoSubscriptionConfiguration>();
+    const attendeeIdToMid = new Map<string, string>();
+    const attendeeIdToGroupId = new Map<string, number>();
+    for (const streamId of receiveStreamIds) {
+      // The local description will have been set by the time this task is running, so all
+      // of the transceivers should have `mid` set by now (see comment above `getMidForStreamId`)
+      const mid = this.context.transceiverController.getMidForStreamId(streamId);
+      if (mid === undefined) {
+        if (streamId !== 0) {
+          // Send section or inactive section
+          this.context.logger.warn(`Could not find MID for stream ID: ${streamId}`);
+        }
+        continue;
+      }
+      const attendeeId = this.context.videoStreamIndex.attendeeIdForStreamId(streamId);
+      attendeeIdToMid.set(attendeeId, mid);
+      attendeeIdToGroupId.set(attendeeId, this.context.videoStreamIndex.groupIdForStreamId(streamId));
+    }
+    for (const preference of preferences) {
+      let configuration = new SignalingClientVideoSubscriptionConfiguration;
+      const mid = attendeeIdToMid.get(preference.attendeeId);
+      if (mid === undefined) {
+        this.context.logger.warn(`Could not find MID for attendee ID: ${preference.attendeeId}`);
+        continue;
+      }
+      configuration.mid = mid;
+      configuration.attendeeId = preference.attendeeId;
+      configuration.groupId = attendeeIdToGroupId.get(preference.attendeeId);
+      configuration.priority = Number.MAX_SAFE_INTEGER - preference.priority;
+      configuration.targetBitrateKbps = preference.targetSizeToBitrateKbps(preference.targetSize);
+      configurations.push(configuration);
+    }
+    return configurations;
   }
 
   private receiveSubscribeAck(): Promise<SdkSubscribeAckFrame> {

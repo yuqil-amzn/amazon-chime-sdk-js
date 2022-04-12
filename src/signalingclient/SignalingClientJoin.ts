@@ -7,9 +7,12 @@ import ApplicationMetadata from '../applicationmetadata/ApplicationMetadata';
  * [[SignalingClientJoin]] contains settings for the Join SignalFrame.
  */
 export default class SignalingClientJoin {
-  /** Initializes a SignalingClientJoin with the given properties.
+  wantsServerSideNetworkProbingOnReceiveSideEstimator: boolean = false;
+  wantsServerSideNetworkAdaption: boolean = false;
+
+  /**
+   * Initializes a SignalingClientJoin with the given properties.
    * @param applicationMetadata [[ApplicationMetadata]].
    */
-
   constructor(public readonly applicationMetadata?: ApplicationMetadata) {}
 }

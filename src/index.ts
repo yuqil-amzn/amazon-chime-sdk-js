@@ -209,6 +209,7 @@ import RealtimeState from './realtimecontroller/RealtimeState';
 import RealtimeSubscribeToAttendeeIdPresenceCallback from './realtimecontroller/RealtimeSubscribeToAttendeeIdPresenceCallback';
 import RealtimeVolumeIndicator from './realtimecontroller/RealtimeVolumeIndicator';
 import ReceiveAudioInputTask from './task/ReceiveAudioInputTask';
+import ReceiveRemoteVideoPauseResumeTask from './task/ReceiveRemoteVideoPauseResumeTask';
 import ReceiveTURNCredentialsTask from './task/ReceiveTURNCredentialsTask';
 import ReceiveVideoInputTask from './task/ReceiveVideoInputTask';
 import ReceiveVideoStreamIndexTask from './task/ReceiveVideoStreamIndexTask';
@@ -223,6 +224,7 @@ import SDPMediaSection from './sdp/SDPMediaSection';
 import Scheduler from './scheduler/Scheduler';
 import SendAndReceiveDataMessagesTask from './task/SendAndReceiveDataMessagesTask';
 import SerialGroupTask from './task/SerialGroupTask';
+import ServerSideNetworkAdaption from './videodownlinkbandwidthpolicy/ServerSideNetworkAdaption';
 import SessionStateController from './sessionstatecontroller/SessionStateController';
 import SessionStateControllerAction from './sessionstatecontroller/SessionStateControllerAction';
 import SessionStateControllerDeferPriority from './sessionstatecontroller/SessionStateControllerDeferPriority';
@@ -537,6 +539,7 @@ export {
   RealtimeSubscribeToAttendeeIdPresenceCallback,
   RealtimeVolumeIndicator,
   ReceiveAudioInputTask,
+  ReceiveRemoteVideoPauseResumeTask,
   ReceiveTURNCredentialsTask,
   ReceiveVideoInputTask,
   ReceiveVideoStreamIndexTask,
@@ -551,6 +554,7 @@ export {
   Scheduler,
   SendAndReceiveDataMessagesTask,
   SerialGroupTask,
+  ServerSideNetworkAdaption,
   SessionStateController,
   SessionStateControllerAction,
   SessionStateControllerDeferPriority,

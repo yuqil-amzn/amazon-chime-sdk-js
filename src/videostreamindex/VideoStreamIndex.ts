@@ -85,6 +85,11 @@ export default interface VideoStreamIndex {
   attendeeIdForStreamId(streamId: number): string;
 
   /**
+   * Returns attendee id for a group id
+   */
+  attendeeIdForGroupId(groupId: number): string;
+
+  /**
    * Returns group id for a stream id
    */
   groupIdForStreamId(streamId: number): number;

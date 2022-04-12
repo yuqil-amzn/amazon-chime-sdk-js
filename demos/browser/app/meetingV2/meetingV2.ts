@@ -48,6 +48,7 @@ import {
   NoOpEventReporter,
   NoOpVideoFrameProcessor,
   RemovableAnalyserNode,
+  ServerSideNetworkAdaption,
   SimulcastLayers,
   Transcript,
   TranscriptEvent,
@@ -560,17 +561,31 @@ export class DemoMeetingApp
       const priorityBasedDownlinkPolicyConfig = document.getElementById(
         'priority-downlink-policy-preset'
       ) as HTMLSelectElement;
+      const priorityBasedDownlinkPolicyConfigTitle = document.getElementById(
+        'priority-downlink-policy-preset-title'
+      ) as HTMLSelectElement;
       const enablePaginationCheckbox = document.getElementById(
         'enable-pagination-checkbox'
       ) as HTMLSelectElement;
-
+      const serverSideNetworkAdaption = document.getElementById(
+        'server-side-network-adaption'
+      ) as HTMLSelectElement;
+      const serverSideNetworkAdaptionTitle = document.getElementById(
+        'server-side-network-adaption-title'
+      ) as HTMLSelectElement;
 
       if (this.usePriorityBasedDownlinkPolicy) {
+        priorityBasedDownlinkPolicyConfigTitle.style.display = 'block';
         priorityBasedDownlinkPolicyConfig.style.display = 'block';
         enablePaginationCheckbox.style.display = 'block';
+        serverSideNetworkAdaption.style.display = 'block';
+        serverSideNetworkAdaptionTitle.style.display = 'block';
       } else {
+        priorityBasedDownlinkPolicyConfigTitle.style.display = 'none';
         priorityBasedDownlinkPolicyConfig.style.display = 'none';
         enablePaginationCheckbox.style.display = 'none';
+        serverSideNetworkAdaption.style.display = 'none';
+        serverSideNetworkAdaptionTitle.style.display = 'none';
       }
     });
 
@@ -1786,6 +1801,18 @@ export class DemoMeetingApp
     }
     configuration.enableSimulcastForUnifiedPlanChromiumBasedBrowsers = this.enableSimulcast;
     if (this.usePriorityBasedDownlinkPolicy) {
+      const serverSideNetworkAdaptionDropDown = document.getElementById('server-side-network-adaption') as HTMLSelectElement;
+      switch (serverSideNetworkAdaptionDropDown.value) {
+        case 'none':
+          this.videoPriorityBasedPolicyConfig.serverSideNetworkAdaption = ServerSideNetworkAdaption.None;
+          break;
+        case 'enable-bandwidth-probing':
+          this.videoPriorityBasedPolicyConfig.serverSideNetworkAdaption = ServerSideNetworkAdaption.EnableBandwidthProbing;
+          break;
+        case 'enable-bandwidth-probing-and-video-adaption':
+          this.videoPriorityBasedPolicyConfig.serverSideNetworkAdaption = ServerSideNetworkAdaption.EnableBandwidthProbingAndRemoteVideoQualityAdaption;
+          break;
+      }
       this.priorityBasedDownlinkPolicy = new VideoPriorityBasedPolicy(this.meetingLogger, this.videoPriorityBasedPolicyConfig);
       configuration.videoDownlinkBandwidthPolicy = this.priorityBasedDownlinkPolicy;
       this.priorityBasedDownlinkPolicy.addObserver(this);

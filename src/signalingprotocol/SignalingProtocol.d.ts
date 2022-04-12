@@ -505,6 +505,12 @@ export interface ISdkJoinFrame {
 
     /** SdkJoinFrame wantsCompressedSdp */
     wantsCompressedSdp?: (boolean|null);
+
+    /** SdkJoinFrame wantsServerSideNetworkProbingOnReceiveSideEstimator */
+    wantsServerSideNetworkProbingOnReceiveSideEstimator?: (boolean|null);
+
+    /** SdkJoinFrame wantsServerSideNetworkAdaption */
+    wantsServerSideNetworkAdaption?: (boolean|null);
 }
 
 /** Represents a SdkJoinFrame. */
@@ -533,6 +539,12 @@ export class SdkJoinFrame implements ISdkJoinFrame {
 
     /** SdkJoinFrame wantsCompressedSdp. */
     public wantsCompressedSdp: boolean;
+
+    /** SdkJoinFrame wantsServerSideNetworkProbingOnReceiveSideEstimator. */
+    public wantsServerSideNetworkProbingOnReceiveSideEstimator: boolean;
+
+    /** SdkJoinFrame wantsServerSideNetworkAdaption. */
+    public wantsServerSideNetworkAdaption: boolean;
 
     /**
      * Creates a new SdkJoinFrame instance using the specified properties.
@@ -616,6 +628,12 @@ export interface ISdkJoinAckFrame {
 
     /** SdkJoinAckFrame wantsCompressedSdp */
     wantsCompressedSdp?: (boolean|null);
+
+    /** SdkJoinAckFrame supportsServerSideNetworkProbing */
+    supportsServerSideNetworkProbing?: (boolean|null);
+
+    /** SdkJoinAckFrame supportsServerSideNetworkAdaption */
+    supportsServerSideNetworkAdaption?: (boolean|null);
 }
 
 /** Represents a SdkJoinAckFrame. */
@@ -635,6 +653,12 @@ export class SdkJoinAckFrame implements ISdkJoinAckFrame {
 
     /** SdkJoinAckFrame wantsCompressedSdp. */
     public wantsCompressedSdp: boolean;
+
+    /** SdkJoinAckFrame supportsServerSideNetworkProbing. */
+    public supportsServerSideNetworkProbing: boolean;
+
+    /** SdkJoinAckFrame supportsServerSideNetworkAdaption. */
+    public supportsServerSideNetworkAdaption: boolean;
 
     /**
      * Creates a new SdkJoinAckFrame instance using the specified properties.
@@ -914,6 +938,9 @@ export interface ISdkSubscribeFrame {
 
     /** SdkSubscribeFrame compressedSdpOffer */
     compressedSdpOffer?: (Uint8Array|null);
+
+    /** SdkSubscribeFrame videoSubscriptionConfiguration */
+    videoSubscriptionConfiguration?: (ISdkVideoSubscriptionConfiguration[]|null);
 }
 
 /** Represents a SdkSubscribeFrame. */
@@ -948,6 +975,9 @@ export class SdkSubscribeFrame implements ISdkSubscribeFrame {
 
     /** SdkSubscribeFrame compressedSdpOffer. */
     public compressedSdpOffer: Uint8Array;
+
+    /** SdkSubscribeFrame videoSubscriptionConfiguration. */
+    public videoSubscriptionConfiguration: ISdkVideoSubscriptionConfiguration[];
 
     /**
      * Creates a new SdkSubscribeFrame instance using the specified properties.
@@ -1247,6 +1277,9 @@ export interface ISdkPauseResumeFrame {
 
     /** SdkPauseResumeFrame streamIds */
     streamIds?: (number[]|null);
+
+    /** SdkPauseResumeFrame groupIds */
+    groupIds?: (number[]|null);
 }
 
 /** Represents a SdkPauseResumeFrame. */
@@ -1260,6 +1293,9 @@ export class SdkPauseResumeFrame implements ISdkPauseResumeFrame {
 
     /** SdkPauseResumeFrame streamIds. */
     public streamIds: number[];
+
+    /** SdkPauseResumeFrame groupIds. */
+    public groupIds: number[];
 
     /**
      * Creates a new SdkPauseResumeFrame instance using the specified properties.
@@ -4327,6 +4363,15 @@ export interface ISdkVideoSubscriptionConfiguration {
 
     /** SdkVideoSubscriptionConfiguration streamId */
     streamId?: (number|null);
+
+    /** SdkVideoSubscriptionConfiguration priority */
+    priority?: (number|null);
+
+    /** SdkVideoSubscriptionConfiguration targetBitrateKbps */
+    targetBitrateKbps?: (number|null);
+
+    /** SdkVideoSubscriptionConfiguration groupId */
+    groupId?: (number|null);
 }
 
 /** Represents a SdkVideoSubscriptionConfiguration. */
@@ -4346,6 +4391,15 @@ export class SdkVideoSubscriptionConfiguration implements ISdkVideoSubscriptionC
 
     /** SdkVideoSubscriptionConfiguration streamId. */
     public streamId: number;
+
+    /** SdkVideoSubscriptionConfiguration priority. */
+    public priority: number;
+
+    /** SdkVideoSubscriptionConfiguration targetBitrateKbps. */
+    public targetBitrateKbps: number;
+
+    /** SdkVideoSubscriptionConfiguration groupId. */
+    public groupId: number;
 
     /**
      * Creates a new SdkVideoSubscriptionConfiguration instance using the specified properties.

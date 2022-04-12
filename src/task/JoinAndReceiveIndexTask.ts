@@ -12,6 +12,7 @@ import SignalingClientJoin from '../signalingclient/SignalingClientJoin';
 import SignalingClientObserver from '../signalingclientobserver/SignalingClientObserver';
 import { SdkIndexFrame, SdkSignalFrame } from '../signalingprotocol/SignalingProtocol.js';
 import TaskCanceler from '../taskcanceler/TaskCanceler';
+import ServerSideNetworkAdaption from '../videodownlinkbandwidthpolicy/ServerSideNetworkAdaption';
 import BaseTask from './BaseTask';
 
 /*
@@ -111,9 +112,22 @@ export default class JoinAndReceiveIndexTask extends BaseTask {
       this.context.previousSdpOffer = null;
       this.context.serverSupportsCompression = false;
 
-      this.context.signalingClient.join(
-        new SignalingClientJoin(this.context.meetingSessionConfiguration.applicationMetadata)
+      const join = new SignalingClientJoin(
+        this.context.meetingSessionConfiguration.applicationMetadata
       );
+      if (this.context.videoDownlinkBandwidthPolicy.wantsServerSideNetworkAdaption !== undefined) {
+        switch (this.context.videoDownlinkBandwidthPolicy.wantsServerSideNetworkAdaption()) {
+          case ServerSideNetworkAdaption.EnableBandwidthProbing:
+            join.wantsServerSideNetworkProbingOnReceiveSideEstimator = true;
+            break;
+          case ServerSideNetworkAdaption.EnableBandwidthProbingAndRemoteVideoQualityAdaption:
+            join.wantsServerSideNetworkAdaption = true;
+            break;
+          default:
+            break;
+        }
+      }
+      this.context.signalingClient.join(join);
     });
     this.context.logger.info(`received first index ${JSON.stringify(indexFrame)}`);
     // We currently don't bother ingesting this into the same places as `ReceiveVideoStreamIndexTask` as we synchronously attempt a first subscribe

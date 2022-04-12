@@ -1,12 +1,14 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+import Attendee from '../attendee/Attendee';
 import ClientMetricReport from '../clientmetricreport/ClientMetricReport';
 import Direction from '../clientmetricreport/ClientMetricReportDirection';
 import MediaType from '../clientmetricreport/ClientMetricReportMediaType';
 import ContentShareConstants from '../contentsharecontroller/ContentShareConstants';
 import Logger from '../logger/Logger';
 import { LogLevel } from '../logger/LogLevel';
+import VideoSource from '../videosource/VideoSource';
 import DefaultVideoStreamIdSet from '../videostreamidset/DefaultVideoStreamIdSet';
 import VideoStreamIdSet from '../videostreamidset/VideoStreamIdSet';
 import VideoStreamDescription from '../videostreamindex/VideoStreamDescription';
@@ -14,6 +16,8 @@ import VideoStreamIndex from '../videostreamindex/VideoStreamIndex';
 import DefaultVideoTile from '../videotile/DefaultVideoTile';
 import VideoTile from '../videotile/VideoTile';
 import VideoTileController from '../videotilecontroller/VideoTileController';
+import AllHighestVideoBandwidthPolicy from './AllHighestVideoBandwidthPolicy';
+import ServerSideNetworkAdaption from './ServerSideNetworkAdaption';
 import TargetDisplaySize from './TargetDisplaySize';
 import VideoDownlinkBandwidthPolicy from './VideoDownlinkBandwidthPolicy';
 import VideoDownlinkObserver from './VideoDownlinkObserver';
@@ -108,6 +112,11 @@ export default class VideoPriorityBasedPolicy implements VideoDownlinkBandwidthP
   private timeBeforeAllowProbeMs: number;
   private lastProbeTimestamp: number;
   private probeFailed: boolean;
+  // When server side video adaption is enabled, We simply use `AllHighestVideoBandwidthPolicy` to populate stream IDs which
+  // are still needed for the subscribe. It does not imply that we are overriding
+  // the server side logic, as it will immediately be overwritten by the 
+  // values provided by `getVideoPreferences`
+  private allHighestPolicy: AllHighestVideoBandwidthPolicy;
 
   constructor(
     protected logger: Logger,
@@ -117,6 +126,7 @@ export default class VideoPriorityBasedPolicy implements VideoDownlinkBandwidthP
   }
 
   reset(): void {
+    this.allHighestPolicy = new AllHighestVideoBandwidthPolicy("");
     this.optimalReceiveSet = new DefaultVideoStreamIdSet();
     this.optimalReceiveStreams = [];
     this.optimalNonPausedReceiveStreams = [];
@@ -155,6 +165,17 @@ export default class VideoPriorityBasedPolicy implements VideoDownlinkBandwidthP
       return;
     }
     this.videoPreferences = preferences?.clone();
+    if (this.videoPriorityBasedPolicyConfig.serverSideNetworkAdaption === ServerSideNetworkAdaption.EnableBandwidthProbingAndRemoteVideoQualityAdaption) {
+        let desiredVideoSources = new Array<VideoSource>();
+        for (const preference of this.videoPreferences) {
+            let source = new VideoSource;
+            source.attendee = new Attendee;
+            source.attendee.attendeeId = preference.attendeeId;
+            desiredVideoSources.push(source)
+        }
+        this.allHighestPolicy.chooseRemoteVideoSources(desiredVideoSources);
+        return;
+    }
     this.videoPreferencesUpdated = true;
     this.logger.info(
       `bwe: setVideoPreferences bwe: new preferences: ${JSON.stringify(preferences)}`
@@ -164,6 +185,9 @@ export default class VideoPriorityBasedPolicy implements VideoDownlinkBandwidthP
 
   updateIndex(videoIndex: VideoStreamIndex): void {
     this.videoIndex = videoIndex;
+    if (this.videoPriorityBasedPolicyConfig.serverSideNetworkAdaption === ServerSideNetworkAdaption.EnableBandwidthProbingAndRemoteVideoQualityAdaption) {
+        this.allHighestPolicy.updateIndex(videoIndex);
+    }
     if (!this.videoPreferences) {
       this.updateDefaultVideoPreferences();
     }
@@ -225,11 +249,17 @@ export default class VideoPriorityBasedPolicy implements VideoDownlinkBandwidthP
   }
 
   wantsResubscribe(): boolean {
+    if (this.videoPriorityBasedPolicyConfig.serverSideNetworkAdaption === ServerSideNetworkAdaption.EnableBandwidthProbingAndRemoteVideoQualityAdaption) {
+        return this.allHighestPolicy.wantsResubscribe();
+    }
     this.calculateOptimalReceiveSet();
     return !this.subscribedReceiveSet.equal(this.optimalReceiveSet);
   }
 
   chooseSubscriptions(): VideoStreamIdSet {
+    if (this.videoPriorityBasedPolicyConfig.serverSideNetworkAdaption === ServerSideNetworkAdaption.EnableBandwidthProbingAndRemoteVideoQualityAdaption) {
+        return this.allHighestPolicy.chooseSubscriptions();
+    }
     if (!this.subscribedReceiveSet.equal(this.optimalReceiveSet)) {
       this.lastSubscribeTimestamp = Date.now();
     }
@@ -338,7 +368,9 @@ export default class VideoPriorityBasedPolicy implements VideoDownlinkBandwidthP
       if (this.rateProbeState === RateProbeState.Probing) {
         subscriptionChoice = this.handleProbe(chosenStreams, rates.targetDownlinkBitrate);
       } else if (rates.deltaToNextUpgrade !== 0) {
-        subscriptionChoice = this.maybeOverrideOrProbe(chosenStreams, rates, upgradeStream);
+        if (this.videoPriorityBasedPolicyConfig.serverSideNetworkAdaption !== ServerSideNetworkAdaption.None) {
+          subscriptionChoice = this.maybeOverrideOrProbe(chosenStreams, rates, upgradeStream);
+        }
       }
     } else {
       // If there was a change in streams to choose from, then cancel any probing or upgrades
@@ -1029,7 +1061,21 @@ export default class VideoPriorityBasedPolicy implements VideoDownlinkBandwidthP
     return logString;
   }
 
-  private getCurrentVideoPreferences(): VideoPreferences {
+  protected getCurrentVideoPreferences(): VideoPreferences {
     return this.videoPreferences || this.defaultVideoPreferences;
+  }
+
+  wantsServerSideNetworkAdaption(): ServerSideNetworkAdaption {
+    return this.videoPriorityBasedPolicyConfig.serverSideNetworkAdaption;
+  }
+
+  getVideoPreferences(): VideoPreferences {
+    let preferences = this.getCurrentVideoPreferences();
+    if (!preferences) {
+      const dummyPreferences = VideoPreferences.prepare();
+      // Can't be undefined
+      preferences = dummyPreferences.build();
+    }
+    return preferences;
   }
 }

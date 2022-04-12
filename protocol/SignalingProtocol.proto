@@ -81,12 +81,16 @@ message SdkJoinFrame {
     optional SdkClientDetails client_details = 4;
     optional uint64 audio_session_id = 6;
     optional bool wants_compressed_sdp = 7;
+    optional bool wants_server_side_network_probing_on_receive_side_estimator = 8;
+    optional bool wants_server_side_network_adaption = 9;
 }
 
 message SdkJoinAckFrame {
     optional SdkTurnCredentials turn_credentials = 1;
     optional uint32 video_subscription_limit = 2 [default=25];
     optional bool wants_compressed_sdp = 3;
+    optional bool supports_server_side_network_probing = 4;
+    optional bool supports_server_side_network_adaption = 5;
 }
 
 message SdkLeaveFrame {}
@@ -113,6 +117,7 @@ message SdkSubscribeFrame {
     optional bool audio_checkin = 6;
     optional bool audio_muted = 7;
     optional bytes compressed_sdp_offer = 8;
+    repeated SdkVideoSubscriptionConfiguration video_subscription_configuration = 9;
 }
 
 message SdkSubscribeAckFrame {
@@ -132,6 +137,7 @@ message SdkIndexFrame {
 
 message SdkPauseResumeFrame {
     repeated uint32 stream_ids = 1;
+    repeated uint32 group_ids = 2;
 }
 
 message SdkBitrateFrame {
@@ -384,9 +390,12 @@ message SdkRemoteVideoUpdateFrame {
 }
 
 message SdkVideoSubscriptionConfiguration {
-   required string mid = 1;
-   optional string attendee_id = 2;
-   optional uint32 stream_id = 3;
+    required string mid = 1;
+    optional string attendee_id = 2;
+    optional uint32 stream_id = 3;
+    optional uint32 priority = 4;
+    optional uint32 target_bitrate_kbps = 5;
+    optional uint32 group_id = 6;
 }
 
 message SdkPrimaryMeetingJoinFrame {
