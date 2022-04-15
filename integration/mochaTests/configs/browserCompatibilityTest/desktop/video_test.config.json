@@ -1,0 +1,52 @@
+{
+  "name": "Video Browser Compatility Test",
+  "tests": [
+    {
+      "name": "Video Test",
+      "description": "Video Test",
+      "testImpl": "VideoTest.js",
+      "retry": 2,
+      "seleniumSessions": {
+        "safari": 2,
+        "ANDROID": 2
+      }
+    }
+  ],
+  "clients": [
+    {
+      "browserName": "chrome",
+      "browserVersion": "latest-2",
+      "platform": "MAC"
+    },
+    {
+      "browserName": "chrome",
+      "browserVersion": "latest-1",
+      "platform": "MAC"
+    },
+    {
+      "browserName": "chrome",
+      "browserVersion": "latest",
+      "platform": "MAC"
+    },
+    {
+      "browserName": "chrome",
+      "browserVersion": "latest-2",
+      "platform": "WINDOWS"
+    },
+    {
+      "browserName": "chrome",
+      "browserVersion": "latest-1",
+      "platform": "WINDOWS"
+    },
+    {
+      "browserName": "chrome",
+      "browserVersion": "latest",
+      "platform": "WINDOWS"
+    },
+    {
+      "browserName": "safari",
+      "browserVersion": "latest",
+      "platform": "MAC"
+    }
+  ]
+}

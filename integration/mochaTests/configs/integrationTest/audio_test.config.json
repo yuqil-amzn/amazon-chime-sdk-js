@@ -1,0 +1,15 @@
+{
+  "tests": [
+    {
+      "name": "Audio Test",
+      "testImpl": "AudioTest.js"
+    }
+  ],
+  "clients": [
+    {
+      "browserName": "chrome",
+      "browserVersion": "latest",
+      "platform": "MAC"
+    }
+  ]
+}

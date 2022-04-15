@@ -1,0 +1,23 @@
+{
+  "name": "app_quit_audio_test.config.json %ts",
+  "grids": [],
+  "tests": [
+    {
+      "name": "App Quit Audio Test",
+      "description": "App Quit Audio Test ",
+      "testImpl": "AppQuitAudioTest.js"
+    }
+  ],
+  "clients": [
+    {
+      "browserName": "chrome",
+      "version": "latest",
+      "platform": "MAC"
+    },
+    {
+      "browserName": "firefox",
+      "version": "latest",
+      "platform": "MAC"
+    }
+  ]
+}

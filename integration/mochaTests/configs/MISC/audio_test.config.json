@@ -1,0 +1,31 @@
+{
+  "tests": [
+    {
+      "name": "Audio Test",
+      "testImpl": "AudioTest.js"
+    },
+    {
+      "name": "Audio Test Stereo Mode Mono Tone",
+      "testImpl": "AudioTest.js",
+      "useStereoMusicAudioProfile": true
+    },
+    {
+      "name": "Audio Test Stereo Mode Stereo Tone",
+      "testImpl": "AudioTest.js",
+      "generateStereoTones": true,
+      "useStereoMusicAudioProfile": true
+    }
+  ],
+  "clients": [
+    {
+      "browserName": "chrome",
+      "browserVersion": "latest",
+      "platform": "MAC"
+    },
+    {
+      "browserName": "firefox",
+      "browserVersion": "latest",
+      "platform": "MAC"
+    }
+  ]
+}

@@ -1,0 +1,245 @@
+#!/usr/bin/env node
+
+require('dotenv').config({path: __dirname + '../.env'});
+const { argv, env, kill, exit } = require('process');
+const { runSync, runAsync } = require('../utils/HelperFunctions');
+const args = require('minimist')(argv.slice(2));
+const path = require('path');
+const fs = require('fs');
+
+const pathToIntegrationFolder = path.resolve(__dirname, '../tests');
+const pathToTestDemoFolder = path.resolve(__dirname, '../../../demos/browser');
+const pathToConfigsFolder = path.resolve(__dirname, '../configs');
+
+const green = '\x1b[32m%s\x1b[0m';
+const red = '\x1b[31m%s\x1b[0m';
+
+let testSuite = 'all';
+let testType = 'integration-test';
+let testConfigs = [];
+let host = 'local';
+
+const usage = () => {
+  console.log(`Usage: run-test -- [-t test] [-h host] [-tt test-type]`);
+  console.log(`  -t, --test                    Target test suite [default: all]`);
+  console.log(`  -h, --host                    WebDriver server [default: local]`);
+  console.log(`  -tt, --test-type              Test type [default: integration-test]`);
+  console.log(`Values:`);
+  console.log(`  -t, --test`);
+  console.log(`    all: ../tests/*`);
+  console.log(`    audio: ../tests/AudioTest.js`);
+  console.log(`    video: ../tests/VideoTest.js\n`);
+  console.log(`  -h, --host`);
+  console.log(`    local: Run tests locally`);
+  console.log(`    saucelabs: Run tests on SauceLabs\n`);
+  console.log(`  -tt, --test-type`);
+  console.log(`    integration-test: Run integration test`);
+  console.log(`    browser-compatibility: Run browser compatibility test\n`);
+};
+
+const parseArgs = () => {
+  for (const [key, value] of Object.entries(args)) {
+    if (key === '_') continue;
+    switch (key) {
+      case 'help':
+        usage();
+        exit(0);
+
+      case 't': case 'test':
+        testSuite = value;
+        break;
+
+      case 'h': case 'host':
+        host = value;
+        process.env['HOST'] = value;
+        break;
+
+      case 'tt': case 'test-type':
+        process.env['TEST_TYPE'] = value;
+        testType = value;
+        break;
+
+      default:
+        console.log(red, `Invalid argument ${key}`);
+        usage();
+        exit(1);
+    }
+  }
+
+  return {
+    testSuite,
+    host,
+    testType
+  };
+};
+
+const settestTargets = (testSuite) => {
+  switch (testSuite) {
+    case 'all':
+      testConfigs = [
+        'audio_test.config.json',
+        // 'video_test.config.json'
+      ];
+      break;
+
+    case 'audio':
+      if(testType === 'browser-compatibility-test') {
+        testConfigs = [
+          'browserCompatibilityTest/desktop/audio_test.config.json'
+        ];
+      }
+      else  {
+        testConfigs = [
+          // 'integrationTest/app_quit_audio_test.config.json',
+          'integrationTest/audio_test.config.json',
+          // 'integrationTest/meeting_leave_audio_test.config.json'
+        ];
+      }
+      break;
+    
+    case 'video':
+      testConfigs = [
+        'integrationTest/video_test.config.json'
+      ];
+      break;
+
+    default:
+      testConfigs = [
+        'audio_test.config.json',
+        'video_test.config.json'
+      ];
+      break;
+  }
+};
+
+const checkIfPortIsInUse = async port =>
+  new Promise(resolve => {
+    const server = require('http')
+      .createServer()
+      .listen(port, 'localhost', () => {
+        server.close();
+        resolve(false);
+      })
+      .on('error', () => {
+        resolve(true);
+      });
+  });
+
+function startTestDemo() {
+  console.log(green, 'Installing dependencies in test demo');
+  runSync('npm', ['install'], { cwd: pathToTestDemoFolder });
+
+  console.log(green, ' Starting the test demo');
+  // The test demo will keep running until the process is terminated,
+  // so we should execute this command asynchronously without blocking other commands.
+  runAsync('npm', ['run', 'start'], { cwd: pathToTestDemoFolder });
+}
+
+const waitUntilTestDemoStarts = async () => {
+  console.log(green, ' Waiting for test demo to start');
+  count = 0;
+  threshold = 60;
+
+  while (count < 60) {
+    const isInUse = await checkIfPortIsInUse(9000);
+    if (isInUse === true) {
+      console.log(green, ' Test demo has started successfully');
+      return;
+    }
+    count += 1;
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+
+  console.log(red, ' Test demo did not start successfully');
+  terminateTestDemo(pid);
+  exit(1);
+};
+
+const startTesting = () => {
+  console.log(green, ' Running test');
+  for(const testConfig of testConfigs)  {
+    let testConfigRaw = fs.readFileSync(path.resolve(pathToConfigsFolder, testConfig));
+    let testConfigJSON = JSON.parse(testConfigRaw);
+    const tests = testConfigJSON.tests;
+    const clients = testConfigJSON.clients;
+    let testResult;
+
+    for(const test of tests)  {
+      process.env['TEST'] = JSON.stringify(test);
+      const maxRetries =
+        test.retry === undefined || test.retry < 1 ? 1 : test.retry;
+      let retryCount = 0;
+    
+      while (retryCount < maxRetries) {
+        if (retryCount !== 0) {
+          console.log(`Retrying attempt : ${retryCount}`);
+        }
+
+        for(const client of clients)  {
+          process.env['CLIENT'] = JSON.stringify(client);
+          console.log(`Running ${test.name} on ${client.browserName}, version ${client.browserVersion} on ${client.platform}`);
+          testResult = runSync('mocha', [test.testImpl], { cwd: pathToIntegrationFolder, timeout: 100000, color: true });
+          if (testResult === 1) {
+            console.log(`${test.name} failed on ${client.browserName}, ${client.browserVersion} on ${client.platform}`);
+            break;
+          }
+        }
+        if (testResult === 0) {
+          console.log(`${test.name} ran successfully on all the clients`);
+          break;
+        }
+        retryCount++;
+      }
+      if (testResult === 1) {
+        console.log(`${test.name} failed`);
+        break;
+      }
+    }
+
+    // if (test.canaryLogPath !== undefined) {
+    //   writeCanaryCompletionTime(this.payload.canaryLogPath);
+    // }
+  }
+  // return testResult === 0 ? 0 : 1;
+};
+
+const writeCanaryCompletionTime = (filePath) => {
+  try {
+    const epochTimeInSeconds = Math.round(Date.now() / 1000);
+    fs.appendFileSync(`${filePath}/last_run_timestamp`, `${epochTimeInSeconds}\n`, {
+      flag: 'a+',
+    });
+    console.log(`Wrote canary completion timestamp : ${epochTimeInSeconds}`);
+  } catch (e) {
+    console.log(`Failed to write last completed canary timestamp to a file : ${e}`);
+  }
+}
+
+const terminateTestDemo = () => {
+  const demoPid = runSync('lsof', ['-i', ':9000', '-t'], null, printOutput = false);
+  if (demoPid) kill(demoPid, 'SIGKILL');
+
+  const serverPid = runSync('lsof', ['-i', ':8080', '-t'], null, printOutput = false);
+  if (serverPid) kill(serverPid, 'SIGKILL');
+  console.log(green, 'Terminated the test demo');
+};
+
+const checkTestResult = (result) => {
+  if (!result || result.includes('failing')) {
+    console.log(red, 'Did not pass all tests, failed');
+    exit(1);
+  } else {
+    console.log(green, 'Passed all tests, succeeded');
+    exit(0);
+  }
+};
+
+(async () => {
+  const { testSuite } = parseArgs();
+  settestTargets(testSuite);
+  // startTestDemo();
+  // await waitUntilTestDemoStarts();
+  const testResult = startTesting();
+  // terminateTestDemo();
+  // checkTestResult(testResult);
+})();

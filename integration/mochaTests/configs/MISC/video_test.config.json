@@ -1,0 +1,18 @@
+{
+  "name": "Video Integration Test",
+  "tests": [
+    {
+      "name": "Video Test",
+      "description": "Video Test",
+      "testImpl": "VideoTest.js",
+      "retry": 2
+    }
+  ],
+  "clients": [
+    {
+      "browserName": "chrome",
+      "browserVersion": "latest",
+      "platform": "MAC"
+    }
+  ]
+}

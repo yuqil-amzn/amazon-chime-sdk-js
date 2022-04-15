@@ -1,0 +1,26 @@
+{
+  "name": "sdk-integration-tests",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "clean": "rm -rf temp && rm -rf ../kite-allure-reports && rm -rf logs",
+    "test": "npm install && node ./script/run-test",
+    "lint": "eslint --config eslintrc.json ./ --ext .ts,.tsx,.js --fix"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.1035.0",
+    "axios": "^0.21.2",
+    "dotenv": "^16.0.0",
+    "express": "^4.17.1",
+    "js-base64": "^2.5.1",
+    "kite-common": "^0.1.8",
+    "selenium-webdriver": "^4.0.0-alpha.5",
+    "socket.io": "^2.4.0",
+    "uuid": "^8.3.2"
+  },
+  "mocha": {
+    "timeout": 300000
+  }
+}
