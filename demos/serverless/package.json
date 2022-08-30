@@ -6,6 +6,8 @@
     "deploy": "node ./deploy.js"
   },
   "dependencies": {
+    "@aws-sdk/client-ivs": "^3.160.0",
+    "aws-sdk": "^2.1210.0",
     "fs-extra": "^9.1.0"
   },
   "license": "Apache-2.0",

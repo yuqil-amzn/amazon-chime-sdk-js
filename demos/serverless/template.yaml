@@ -50,6 +50,19 @@ Parameters:
     Default: true
     Type: String
     AllowedValues: [ true, false ]
+  IVSChannelPrefix:
+    Description: Prefix of IVS channel to broadcast the capture artifacts. The IVS channel name will be suffixed with the region.
+    Default: ""
+    Type: String
+  IVSChannelPlaybackUrl:
+    Description: The playback URL that generated from the IVS channel.
+    Default: ""
+    Type: String
+  RtmpUrl:
+    Description: RTMP Url of the IVS channel. Live Connector use RTMP URL to start broadcast.
+    Default: ""
+    Type: String
+
 
 Conditions:
   ShouldUseEventBridge: !Equals [true, !Ref UseEventBridge]
@@ -74,6 +87,9 @@ Globals:
         CHIME_SDK_MEDIA_PIPELINES_ENDPOINT: !Ref ChimeSDKMediaPipelinesEndpoint
         BROWSER_EVENT_INGESTION_LOG_GROUP_NAME: !Ref ChimeBrowserEventIngestionLogs
         CAPTURE_S3_DESTINATION_PREFIX: !Ref ChimeMediaCaptureS3BucketPrefix
+        IVS_CHANNEL_PREFIX: !Ref IVSChannelPrefix
+        IVS_CHANNEL_PLAYBACK_URL: !Ref IVSChannelPlaybackUrl
+        RTMP_URL: !Ref RtmpUrl
         AWS_ACCOUNT_ID: !Sub "${AWS::AccountId}"
 Resources:
 
@@ -101,6 +117,7 @@ Resources:
               - 'chime:StopMeetingTranscription'
               - 'chime:CreateMediaCapturePipeline'
               - 'chime:DeleteMediaCapturePipeline'
+              - 'ivs:CreateChannel'
               - 's3:GetBucketPolicy'
               - 's3:GetBucketLocation'
             Resource: '*'
@@ -112,6 +129,8 @@ Resources:
         - Ref: ChimeSdkStopTranscriptionLambdaRole
         - Ref: ChimeSdkStartCaptureLambdaRole
         - Ref: ChimeSdkEndCaptureLambdaRole
+        - Ref: ChimeSdkStartLiveConnectorLambdaRole
+        - Ref: ChimeSdkEndLiveConnectorLambdaRole
   ChimeMessagingAccessPolicy:
     Type: AWS::IAM::Policy
     Condition: ShouldDeployFetchCredentialLambda
@@ -313,6 +332,39 @@ Resources:
           Properties:
             Path: /endCapture
             Method: POST
+
+  ChimeSdkStartLiveConnectorLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.start_live_connector
+      CodeUri: src/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Meetings
+      Environment:
+        Variables:
+          USE_EVENT_BRIDGE: !Ref UseEventBridge
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /startLiveConnector
+            Method: POST
+  ChimeSdkEndLiveConnectorLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers.end_live_connector
+      CodeUri: src/
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Meetings
+      Events:
+        Api1:
+          Type: Api
+          Properties:
+            Path: /endLiveConnector
+            Method: POST
+
   ChimeSQSQueueLambda:
     Type: AWS::Serverless::Function
     Properties:
