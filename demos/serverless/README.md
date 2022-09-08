@@ -61,6 +61,13 @@ npm run deploy -- -r us-east-1 -b <deploy-bucekt> -o <capture-bucket-prefix> -i 
 
 Note that you need to enable these regions if you plan to use media capture. For more information, see [Managing AWS Regions](https://docs.aws.amazon.com/general/latest/gr/rande-manage.html).
 
+You can also use the live connector feature to broadcast the captured artifacts. The default layout is vertical layout. You can specify the ivs channel prefix with --ivs-channel-prefix option, for example
+```
+cd demos/serverless
+npm install
+npm run deploy -- -r us-east-1 -b <deploy-bucekt> -o <capture-bucket-prefix> -i af-south-1,eu-south-1 -s <my-stack-name> --ivs-channel-prefix <ivs-channel-name-prefix> -a meeting
+```
+
 ##### ChimeSDKMediaPipelines Namespace vs Chime Namespace
 The `AWS.Chime` and the `AWS.ChimeSDKMediaPipelines` are both Amazon Chime's AWS clients to help builders create Amazon Chime SDK media pipelines. `AWS.ChimeSDKMediaPipelines` is intended to replace the previous `AWS.Chime` client.
 
